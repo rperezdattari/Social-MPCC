@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+	<rosparam command="load" file="$(find lmpcc)/scripts/scenarios/straight_road.yaml"/>
+
+	<!-- node pkg="lmpcc" name="carla_scene" type="simulation_manager_node.py" output="screen"/ -->
+</launch>

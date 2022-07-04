@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This scenario file was created by SGDiCoP on 2014-04-16T15:14:48-->
+<scenario>
+    <!--Interior rectangle-->
+    <!--obstacle x1="8" y1="3" x2="12" y2="4"/-->
+
+    <!-- Agent 1 -->
+    <agent id="1">
+        <speed>1.15</speed>
+        <threshold>3</threshold>
+        <spawnpoint id="spawn" x ="60" y="-5"/>
+        <waypoint id="goal_1" x="80" y="-5"/>
+        <waypoint id="goal_2" x="80" y="5"/>
+        <waypoint id="goal_3" x="60" y="5"/>
+        <waypoint id="goal_4" x="80" y="5"/>
+        <waypoint id="goal_5" x="80" y="-5"/>
+        <waypoint id="goal_6" x="60" y="-5"/>
+    </agent>
+
+    <!-- <agent id="2">
+        <speed>1.4</speed>
+        <threshold>3</threshold>
+        <spawnpoint id="spawn" x ="60" y="5"/>
+        <waypoint id="goal_1" x="80" y="5"/>
+        <waypoint id="goal_2" x="80" y="-5"/>
+        <waypoint id="goal_3" x="60" y="-5"/>
+        <waypoint id="goal_4" x="80" y="-5"/>
+        <waypoint id="goal_5" x="80" y="5"/>
+        <waypoint id="goal_6" x="60" y="5"/>
+    </agent>
+
+    <agent id="3">
+        <speed>1.8</speed>
+        <threshold>3</threshold>
+        <spawnpoint id="spawn" x ="100" y="-5"/>
+        <waypoint id="goal_1" x="80" y="-5"/>
+        <waypoint id="goal_2" x="80" y="5"/>
+        <waypoint id="goal_3" x="70" y="5"/>
+        <waypoint id="goal_4" x="80" y="5"/>
+        <waypoint id="goal_5" x="80" y="-5"/>
+        <waypoint id="goal_6" x="70" y="-5"/>
+    </agent>
+
+    <agent id="4">
+        <speed>2</speed>
+        <threshold>3</threshold>
+        <spawnpoint id="spawn" x ="50" y="5"/>
+        <waypoint id="goal_1" x="80" y="5"/>
+        <waypoint id="goal_2" x="80" y="-5"/>
+        <waypoint id="goal_3" x="50" y="-5"/>
+        <waypoint id="goal_4" x="80" y="-5"/>
+        <waypoint id="goal_5" x="80" y="5"/>
+        <waypoint id="goal_6" x="50" y="5"/>
+    </agent> -->
+
+    <Distance_check_rate>5</Distance_check_rate> <!--Hz-->
+
+</scenario>
