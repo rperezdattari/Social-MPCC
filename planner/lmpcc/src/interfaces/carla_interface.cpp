@@ -9,16 +9,8 @@ CarlaInterface::CarlaInterface(ros::NodeHandle &nh, MPCC *controller, predictive
 
     // Subscribers for sensor data
     state_sub_ = nh.subscribe(config_->robot_state_topic_, 1, &CarlaInterface::StateCallBack, this);
-    // steering_sub_ = nh.subscribe(config_->steering_state_topic_, 1, &CarlaInterface::SteeringAngleCallback, this);
-    //acceleration_sub_ = nh.subscribe(config_->acceleration_state_topic_, 1, &CarlaInterface::AccelerationCallback, this);
-
-    // Subscribers for high level data
     obstacle_sub_ = nh.subscribe(config_->obs_state_topic_, 1, &CarlaInterface::ObstacleCallBack, this);
-
-    // Subscribe to waypoints
     waypoints_sub_ = nh.subscribe(config_->waypoint_topic_, 1, &CarlaInterface::WaypointsCallback, this);
-
-    // Vehicle Info
     vehicle_info_sub_ = nh.subscribe("/carla/ego_vehicle/vehicle_info", 1, &CarlaInterface::VehicleInfoCallback, this);
 
     // Subscribe to initial pose estimate in rviz (set this topic in the rviz config!)
@@ -92,18 +84,16 @@ void CarlaInterface::Actuate()
     // Ackermann is as if there is a single wheel being controlled at the center of the front axis
     // Note: we using integrate() to compute the setpoint 1/f in the future rather than the integrator time step!
     // Steering (integrated to the next control time step)
-    //command_msg_.steering_angle = solver_interface_ptr_->integrate(1.0 / config_->clock_frequency_, solver_interface_ptr_->delta(0), solver_interface_ptr_->w());
     command_msg_.steering_angle = solver_interface_ptr_->delta(1);
     command_msg_.steering_angle_velocity = solver_interface_ptr_->w();
 
     // Throttle (integrated to the next control time step)
-    // command_msg_.speed = solver_interface_ptr_->integrate(1.0 / config_->clock_frequency_, solver_interface_ptr_->v(0), solver_interface_ptr_->a());
     command_msg_.speed = solver_interface_ptr_->v(1);
     command_msg_.acceleration = solver_interface_ptr_->a();
     command_pub_.publish(command_msg_);
 
-    // We need to update the steering angle since there is no feedback?
-    solver_interface_ptr_->getState()->set_delta(command_msg_.steering_angle); // This is an issue to solve (carla doesn't have an API for this variable it seems)
+    // We need to update the steering angle since there is no feedback
+    solver_interface_ptr_->getState()->set_delta(command_msg_.steering_angle);
 }
 
 void CarlaInterface::ActuateBrake(double deceleration)
@@ -119,26 +109,7 @@ void CarlaInterface::ActuateBrake(double deceleration)
     command_msg_.acceleration = -deceleration;
     command_msg_.jerk = 0.0;
 
-    // Initializie solver with breaking command
-    /*
-    solver_interface_ptr_->x(0) = solver_interface_ptr_->getState()->get_x();
-    solver_interface_ptr_->y(0) = solver_interface_ptr_->getState()->get_y();
-    solver_interface_ptr_->psi(0) = solver_interface_ptr_->getState()->get_psi();
-    solver_interface_ptr_->v(0) = solver_interface_ptr_->getState()->get_v();
-    solver_interface_ptr_->delta(0) = solver_interface_ptr_->getState()->get_delta();
-
-    double dt = 0.2; // This is not accurate if dt =/= integrator constant
-    for (size_t N_iter = 1; N_iter < solver_interface_ptr_->FORCES_N; N_iter++) {
-    solver_interface_ptr_->v(N_iter) = std::max(0.0,solver_interface_ptr_->v(N_iter-1)-deceleration*dt);
-        solver_interface_ptr_->x(N_iter) = solver_interface_ptr_->x(N_iter-1)+std::cos(solver_interface_ptr_->psi(N_iter-1))*solver_interface_ptr_->v(N_iter);
-        solver_interface_ptr_->y(N_iter) = solver_interface_ptr_->y(N_iter-1)+std::sin(solver_interface_ptr_->psi(N_iter-1))*solver_interface_ptr_->v(N_iter);
-        solver_interface_ptr_->psi(N_iter) = solver_interface_ptr_->psi(N_iter-1);
-        solver_interface_ptr_->delta(N_iter) = solver_interface_ptr_->delta(N_iter-1);
-        solver_interface_ptr_->spline(N_iter) = solver_interface_ptr_->spline(N_iter-1)+solver_interface_ptr_->v(N_iter)*dt;
-    }
-    */
     command_pub_.publish(command_msg_);
-
 }
 
 void CarlaInterface::ResetCallback(const geometry_msgs::PoseWithCovarianceStamped& initial_pose){
@@ -278,12 +249,13 @@ void CarlaInterface::ObstacleCallBack(const derived_object_msgs::ObjectArray &re
             double Xp, Yp, distance;
             std::vector<double> objectDistances;
             //ROS_INFO_STREAM("COmputing distances");
+
             for (size_t i = 0; i < obstacles_.lmpcc_obstacles.size(); i++)
             {
 
                 //ROS_INFO_STREAM("transform the pose to base_link in order to calculate the distance to the obstacle");
                 transformPose("map", "base_link", obstacles_.lmpcc_obstacles[i].pose);
-                //transformTwist(person.header.frame_id, "base_link", local_obstacles.lmpcc_obstacles[i].velocity);
+
                 //get obstacle coordinates in base_link frame
                 Xp = obstacles_.lmpcc_obstacles[i].pose.position.x;
                 Yp = obstacles_.lmpcc_obstacles[i].pose.position.y;
@@ -417,17 +389,6 @@ void CarlaInterface::AccelerationCallback(const geometry_msgs::AccelWithCovarian
     solver_interface_ptr_->getState()->set_ay(msg.accel.accel.linear.y);
 }
 
-// /* Callback for the steering joint feedback */
-// void CarlaInterface::SteeringAngleCallback(const carla_msgs::CarlaEgoVehicleControl &msg)
-// {
-//     // Looks like there is no delay, so we'll listen to the control command and set the actual steering angle that way.
-//     if (config_->activate_debug_output_)
-//         ROS_INFO("Steering Callback");
-
-//     // The steering angle is saved in the first position
-//     solver_interface_ptr_->delta = msg.steer;
-// }
-
 void CarlaInterface::AckermannCallback(const carla_ackermann_control::EgoVehicleControlInfo &msg)
 {
     ROS_WARN_STREAM("Ackermann acceleration: " << msg.current.accel);
@@ -522,11 +483,11 @@ bool CarlaInterface::transformPose(const std::string &from, const std::string &t
 {
     bool transform = false;
     tf::StampedTransform stamped_tf;
-    //ROS_DEBUG_STREAM("Transforming from :" << from << " to: " << to);
+
     geometry_msgs::PoseStamped stampedPose_in, stampedPose_out;
-    // std::cout << "from " << from << " to " << to << ", x = " << pose.position.x << ", y = " << pose.position.y << std::endl;
+
     stampedPose_in.pose = pose;
-    // std::cout << " value: " << std::sqrt(std::pow(pose.orientation.x, 2.0) + std::pow(pose.orientation.y, 2.0) + std::pow(pose.orientation.z, 2.0) + std::pow(pose.orientation.w, 2.0)) << std::endl;
+
     if (std::sqrt(std::pow(pose.orientation.x, 2) + std::pow(pose.orientation.y, 2) + std::pow(pose.orientation.z, 2) + std::pow(pose.orientation.w, 2)) < 1.0 - 1e-9)
     {
         stampedPose_in.pose.orientation.x = 0;
@@ -535,7 +496,6 @@ bool CarlaInterface::transformPose(const std::string &from, const std::string &t
         stampedPose_in.pose.orientation.w = 1;
         std::cout << "LMPCC: Quaternion was not normalised properly!" << std::endl;
     }
-    //    stampedPose_in.header.stamp = ros::Time::now();
     stampedPose_in.header.frame_id = from;
 
     // make sure source and target frame exist
@@ -543,9 +503,6 @@ bool CarlaInterface::transformPose(const std::string &from, const std::string &t
     {
         try
         {
-            // std::cout << "in transform try " << std::endl;
-            // find transforamtion between souce and target frame
-            // tf_listener_.waitForTransform(from, to, ros::Time(0), ros::Duration(0.02));
             tf_listener_.transformPose(to, stampedPose_in, stampedPose_out);
 
             transform = true;

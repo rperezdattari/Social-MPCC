@@ -65,9 +65,6 @@ bool MPCC::initialize()
         if (controller_config_->static_obstacles_enabled_)
             point_cloud_sub_ = nh.subscribe(controller_config_->occupancy_grid_topic_, 1, &MPCC::mapCallback, this);
 
-        /******************************** Service Servers **********************************************************/
-        // reset_server_ = nh.advertiseService(controller_config_->reset_topic_, &MPCC::ResetCallBack,this);
-
         /******************************** Publishers **********************************************************/
         computation_pub_ = nh.advertise<std_msgs::Float64>("lmpcc/computation_times", 1);
         pred_traj_pub_ = nh.advertise<nav_msgs::Path>(controller_config_->planned_trajectory_topic_, 1);
@@ -524,9 +521,6 @@ void MPCC::ControlLoop()
                 reference_path_.spline_index_++;
             }
         }
-
-        // if(exit_code_ ==1)
-        // minimal_s_ = solver_interface_->spline(0);
 
         reference_path_.UpdateClosestPoint(&(*solver_interface_), minimal_s_, window_size_, n_search_points_);
 

@@ -1,3 +1,12 @@
+/**
+ * @file lmpcc_controller.h
+ * @brief Main controller class
+ * @version 0.1
+ * @date 2022-07-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #ifndef LMPCC_LMPCC_H
 #define LMPCC_LMPCC_H
@@ -135,20 +144,30 @@ public:
      */
     bool initialize();
 
+    /**
+     * @brief Callback for the velocity reference
+     * 
+     * @param msg 
+     */
     void VRefCallBack(const std_msgs::Float64::ConstPtr& msg);
 
+    /**
+     * @brief Callback for the joystick
+     * 
+     * @param msg 
+     */
     void JoyCallBack(const sensor_msgs::Joy::ConstPtr& msg);
 
+    /** Update functions when data comes in from the interface */
     void OnReset();
     void OnObstaclesReceived();
     void OnStateReceived();
     void OnWaypointsReceived();
 
+    /** Debugging functionality */
     void checkConstraints();
-
     void checkCollisionConstraints();
 
-    //void mapCallback(const sensor_msgs::PointCloud2::ConstPtr& pcl2ptr_map_ros);
     void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& occupancy_grid);
 
     /**
@@ -206,10 +225,10 @@ public:
     // Reference Path to follow
     ReferencePath reference_path_;
 
-    // Interface with the system
+    /* Interface - responsible for interacting with the simulation or robot (i.e., reading sensors, publishing control commands) */
     std::unique_ptr<Interface> system_interface_;
 
-    // Solver Interface
+    /* Solver interface - creates an intuitive API for the Forces Pro solver */
     std::unique_ptr<BaseModel> solver_interface_;
 
     // publish trajectory
@@ -326,6 +345,10 @@ private:
      */
     void runNode(const ros::TimerEvent& event);
 
+    /**
+     * @brief Main control loop, updates FORCES parameters, solves optimization, actuates the system
+     * 
+     */
     void ControlLoop();
     
     double getVelocityReference(int k);

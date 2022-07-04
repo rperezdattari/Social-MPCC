@@ -1,3 +1,12 @@
+/**
+ * @file reference_path.h
+ * @brief Class responsible for the reference path used in Model Predictive Contouring Control (MPCC)
+ * @version 0.1
+ * @date 2022-07-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #ifndef REFERENCE_PATH_H
 #define REFERENCE_PATH_H
 
@@ -12,8 +21,6 @@
 #include <nav_msgs/Path.h>
 
 #include <Eigen/Eigen>
-// #include <Eigen/Dense>
-// #include <Eigen/Core>
 
 //splines
 #include <tkspline/spline.h>

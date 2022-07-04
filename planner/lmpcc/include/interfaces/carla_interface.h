@@ -1,3 +1,13 @@
+/**
+ * @file carla_interface.h
+ * @brief An interface for the CARLA simulator. Reads sensor data, publishing vehicle commands
+ * @version 0.1
+ * @date 2022-07-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #ifndef CARLA_INTERFACE_H
 #define CARLA_INTERFACE_H
 
@@ -69,11 +79,9 @@ public:
 
     void StateCallBack(const nav_msgs::Odometry::ConstPtr &msg);
     void AccelerationCallback(const geometry_msgs::AccelWithCovarianceStamped &msg);
-    // void SteeringAngleCallback(const carla_msgs::CarlaEgoVehicleControl& msg);
 
     void PublishGoal();
 
-    //void AckermannCallback(const carla_ackermann_msgs::EgoVehicleControlInfo &msg);
     void AckermannCallback(const carla_ackermann_control::EgoVehicleControlInfo &msg);
 
     void WaypointsCallback(const nav_msgs::Path &msg);
