@@ -20,4 +20,8 @@ To generate a solver, run
 source generate_solver.sh
 ```
 
-You should see a solver being created for the "Prius" system. When the solver is generated you may build the planner using `catkin build`.
+You should see a solver being created for the "Prius" system. 
+
+**NOTE:** It could be the case that your solver needs an update. You will, get a message when running the previous command if this is the case. Update the solver and run the command again.
+
+When the solver is generated you may build the planner using `catkin build`.
