@@ -1,5 +1,5 @@
 # Social-MPCC
-Code accompanying the paper: "Visually-guided motion planning for autonomous driving from interactive demonstrations", available at https://www.sciencedirect.com/science/article/pii/S0952197622003323
+Code accompanying the paper: "Visually-guided motion planning for autonomous driving from interactive demonstrations", available at https://www.sciencedirect.com/science/article/pii/S0952197622003323.
 
 ## Installation
 The MPCC planner uses the Forces Pro solver (see [manual](https://forces.embotech.com/Documentation/installation/python.html)). A license is required to run this solver. To do so follow these steps:
