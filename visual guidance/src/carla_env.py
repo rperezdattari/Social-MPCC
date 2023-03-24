@@ -14,7 +14,6 @@ import cv2
 from scipy.spatial.transform import Rotation
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-import matplotlib.pyplot as plt
 
 
 class CarlaEnv:
@@ -206,26 +205,13 @@ class CarlaEnv:
             point = Point(traffic_light_position[0], traffic_light_position[1])
             light_in_window = polygon.contains(point)
 
-            #if light_in_window:
-            #    print('Traffic light in car window!', id)
-
             # Align car-traffic lights frames
             orientation_euler[0] += np.pi / 2
 
             # Compute angle distance
             angle_distance = np.abs(np.abs(orientation_euler[0] - orientation_traffic_light_euler[0]) - np.pi)
 
-            #distance_light_car = np.linalg.norm(traffic_light_position - self.position)
-            if angle_distance < angle_dist_thr and light_in_window: # distance_light_car < 15:
-                #print('Traffic light detected!', 'orientation distance:', angle_distance, 'id:', id)
-                # print('Orientation car:', orientation_euler)
-                #print('Orientation traffic light:', orientation_traffic_light_euler)
-                #plt.scatter(point_1[0], point_1[1], color='g')
-                #plt.scatter(point_2[0], point_2[1], color='g')
-                #plt.scatter(point_3[0], point_3[1], color='b')
-                #plt.scatter(point_4[0], point_4[1], color='b')
-                #plt.scatter(traffic_light_position[0], traffic_light_position[1], color='red')
-                #plt.show()
+            if angle_distance < angle_dist_thr and light_in_window:
                 active_traffic_lights.append(id)
 
         # Get active traffic lights status
@@ -248,7 +234,6 @@ class CarlaEnv:
                 self.drive = 1
 
     def _get_obs(self):
-        #if self.front_img is None:
         if self.front_segmented is None:
             print('Front image not received!')
             observation = np.zeros([600, 800, 3])
@@ -263,7 +248,6 @@ class CarlaEnv:
                 observation[:, :, 1] = self.front_img_gray
                 observation[:, :, 2] = self.front_depth
 
-        #return observation
         return [self.front_segmented[:, :, :3], self.velocity, self.drive]
 
     def get_feedback(self):
@@ -273,18 +257,8 @@ class CarlaEnv:
                 if self.joystick_info.buttons[3] == 1:
                     self.human_reset = True
                     self.feedback = np.array([0])
-                #self.feedback = np.clip(np.array([self.joystick_info.axes[1]]), 0, 1) * 2 - 1 + self.action_before_feedback
-                #self.feedback = np.clip(np.array([self.joystick_info.axes[1]]) + self.action_before_feedback, -1, 1)
                 h = np.array([self.joystick_info.axes[1]])
                 self.feedback = h
-                """
-                if h > 0:
-                    distance_to_max = 1 - self.action_before_feedback
-                    self.feedback = self.action_before_feedback + distance_to_max * h
-                else:
-                    distance_to_min = np.abs(-1 - self.action_before_feedback)
-                    self.feedback = self.action_before_feedback + distance_to_min * h
-                """
             else:
                 if np.abs(self.keyboard_info.linear.x) > 0.0:
                     self.human_reset = True
@@ -301,7 +275,6 @@ class CarlaEnv:
         return self.feedback
 
     def reset(self):
-
         msg = std_msg.Float64()
         msg.data = -1
         self.velocity_ref_pub.publish(msg)
@@ -335,7 +308,7 @@ class CarlaEnv:
         self.velocity_ref_pub.publish(msg)
         time.sleep(4.0)
 
-        print('D-COACH ready!')
+        print('Social MPCC ready!')
 
         # Random velocity ref for database generation
         if self.random_velocity_ref:

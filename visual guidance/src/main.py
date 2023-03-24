@@ -1,13 +1,10 @@
 import numpy as np
 import time
-import tensorflow as tf
-from main_init import neural_network, transition_model, transition_model_type, agent, agent_type, exp_num, count_down, \
-    max_num_of_episodes, env, render, max_time_steps_episode, human_feedback, save_results, eval_save_path, \
-    render_delay, save_policy, save_transition_model, env_type
-
+from main_init import agent, agent_type, exp_num, count_down, max_num_of_episodes, env, render, human_feedback, \
+    save_results, eval_save_path, render_delay, save_policy, env_type
 
 """
-Main loop of the algorithm described in the paper 'Interactive Learning of Temporal Features for Control' 
+Main file for training Social MPCC
 """
 
 # Initialize variables
@@ -21,7 +18,6 @@ init_time = time.time()
 print('\nExperiment number:', exp_num)
 print('Environment: Carla')
 print('Learning algorithm: ', agent_type)
-print('Transition Model:', transition_model_type, '\n')
 
 time.sleep(2)
 
@@ -34,18 +30,16 @@ if count_down:
 # Start training loop
 pause = True
 i_episode = 0
-#summary_writer = tf.summary.create_file_writer(logdir='logs/
 summary_writer = None
 t_train = 0
 for _ in range(max_num_of_episodes):
     print('Starting episode number', i_episode)
 
-    if not evaluation:
-        transition_model.new_episode()
-        agent.new_episode()
-
     # Reset environment at the beginning of the episode
     observation = env.reset()
+
+    # Restart agent
+    agent.restart()
 
     # Ensure trajectory is not short
     if env_type == 'ROS':
@@ -56,8 +50,8 @@ for _ in range(max_num_of_episodes):
     past_action, past_observation, episode_trajectory, h_counter = None, None, [], 0
 
     # Go through time steps in the episode
-    for t in range(int(max_time_steps_episode)):
-
+    t = 0
+    while True:
         if env_type == 'gym':
             # Make the environment visible and delay
             if render:
@@ -72,10 +66,12 @@ for _ in range(max_num_of_episodes):
 
         elif env_type == 'ROS':
             if hasattr(env, 'joystick_info'):
-                if env.joystick_info.buttons[2]:
+                if env.joystick_info.buttons[2] and not pause:
                     pause = True
+                    print("Paused")
                 elif env.joystick_info.buttons[1]:
                     pause = False
+                    print("Started")
             if pause:
                 continue
 
@@ -87,12 +83,19 @@ for _ in range(max_num_of_episodes):
         else:
             h = None
 
+        t += 1
+
         # Feed h to agent
         agent.feed_h(h, feedback_received)
 
+        if env_type == 'gym':
+            observation = [observation, 0, 0]
+
         # Map action from observation
-        state_representation = transition_model.get_state_representation(neural_network, observation)
-        action, action_human, action_agent = agent.action(neural_network, state_representation)
+        if env_type == 'gym':
+            action = agent.action(observation)
+        elif env_type == 'ROS':
+            action, action_human, action_agent = agent.action(observation)
 
         # Act
         if env_type == 'gym':
@@ -100,20 +103,7 @@ for _ in range(max_num_of_episodes):
         elif env_type == 'ROS':
             observation, _, environment_done, _ = env.step(action, action_human, action_agent)
 
-        # Add last action to transition model
-        transition_model.add_action(action)
-
-        # Append transition to database
-        if not evaluation:
-            if past_action is not None and past_observation is not None:
-                episode_trajectory.append([past_observation, past_action, transition_model.processed_observation])  # append o, a, o' (not really necessary to store it like this)
-
-            past_observation, past_action = transition_model.processed_observation, action
-
-            if t % 100 == 0 or environment_done:
-                trajectories_database.append(episode_trajectory)  # append episode trajectory to database
-                episode_trajectory = []
-
+        # Count feedback
         if feedback_received:  # and (not env.past_feedback_received):
             past_feedback_received = feedback_received
             h_counter += 1
@@ -121,37 +111,42 @@ for _ in range(max_num_of_episodes):
         # Compute done
         done = environment_done or human_done
 
-        # Add last step to memory buffer
-        if transition_model.last_step(action) is not None and np.any(h):  # if human teleoperates, add action to database
-            agent.buffer.add(transition_model.last_step(action))
-
         # Update weights transition model/policy
-        if not evaluation and (t > 100):
+        if env_type == 'ROS':
+            if t > 100:
+                if done:
+                    t_total = done  # tell the interactive_agents that the episode finished
+
+                t_train = agent.train(feedback_received=feedback_received,
+                                      done=done)
+                t_total += 1
+        elif env_type == 'gym':
             if done:
                 t_total = done  # tell the interactive_agents that the episode finished
 
-            t_train = agent.train(neural_network, transition_model, action, t_total, done, summary_writer, t_train, feedback_received, transition_model.last_step(h))
+            t_train = agent.train(feedback_received=feedback_received,
+                                  done=done)
             t_total += 1
 
         # End of episode
-        if done:  # and (t > 100):
-            i_episode += 1
-            print('Percentage of given feedback:', '%.3f' % ((h_counter / (t + 1e-6)) * 100))
-            total_feedback.append(h_counter/(t + 1e-6))
-            total_time_steps.append(t_total)
-            if save_results:
-                np.save(eval_save_path + str(i_episode) + '_feedback', total_feedback)
-                np.save(eval_save_path + str(i_episode) + '_time', total_time_steps)
+        if done:
+            if env_type == 'ROS':
+                _, _, _, _ = env.step(np.array([-1]), action_human, action_agent)
+            if (t > 100):
+                i_episode += 1
 
-            if save_policy:
-                neural_network.save_policy(id=str(i_episode + 1))
+                total_feedback.append(h_counter/(t + 1e-6))
+                total_time_steps.append(t_total)
+                if save_results:
+                    np.save(eval_save_path + str(i_episode) + '_feedback', total_feedback)
+                    np.save(eval_save_path + str(i_episode) + '_time', total_time_steps)
 
-            if render:
-                time.sleep(1)
+                if save_policy:
+                    agent.neural_network.save_policy()
+                    agent.save_buffer()
+
+                if render:
+                    time.sleep(1)
 
             print('Total time (s):', '%.3f' % (time.time() - init_time))
             break
-        #elif done and (t < 100):
-        #    t_total -= t
-        #    agent.buffer.buffer = agent.buffer.buffer[:-h_counter]
-        #    break
