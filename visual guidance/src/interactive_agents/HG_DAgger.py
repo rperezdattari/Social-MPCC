@@ -137,21 +137,12 @@ class HG_DAGGER:
 
         if self.feedback_received:  # if feedback, human teleoperates
             action = action_human
-            #print('feedback:', action)
-
-            # Add trajectory data to buffers
-            #action_norm = self._norm_action(action)
 
             # Add state-action to buffer
             if self.features_buffer.initialized():
                 self.buffer.add([self.features_buffer.buffer[:], velocity_observation, drive_observation, angle_direction, action])#, self.image_buffer.buffer])
         else:
             action = action_agent
-
-            # Denorm action
-            #action = self._denorm_action(action)
-
-            #print('action:', action)
 
         self.last_action = action
         return action, action_human, action_agent
@@ -168,22 +159,6 @@ class HG_DAGGER:
                     batch = self.buffer.sample(batch_size=self.batch_size)
                     if (i % probability_update_frequency) == 0 and i != 0:
                         print('Buffer size:', len(self.buffer.buffer), 'Loss:', np.mean(loss_history[-10:]))
-                # TODO: test this
-                """
-                else:
-                    if (i % probability_update_frequency) == 0:
-                        errors = self._errors_dataset(dataset=self.buffer.buffer, batch_size=200)
-                        print('Errors updated!')
-                        buffer_in_std, buffer_out_std, batch_size_1, batch_size_2 = self._split_dataset(errors,
-                                                                                                        batch_size=batch_size,
-                                                                                                        alpha=1,
-                                                                                                        min_buffer_out_std_size=30,
-                                                                                                        buffer_out_std_sampling_probability=0.4)
-                        print('Size buffer 1:', len(buffer_in_std.buffer), '; Size buffer 2:', len(buffer_out_std.buffer))
-                        # sampling_probability = self._get_sampling_probability(errors)
-                    batch = self._sample_from_split(buffer_in_std, buffer_out_std, batch_size, batch_size_1, batch_size_2)
-                    #batch = self._sample_from_probability(batch_size, sampling_probability)
-                """
 
                 # Sample demonstrations from buffer and reshape
                 batch_size_current = len(batch)
@@ -192,12 +167,6 @@ class HG_DAGGER:
                 drive_batch = np.reshape([np.array(pair[2]) for pair in batch], [batch_size_current, 1])
                 angle_direction_batch = np.reshape([np.array(pair[3]) for pair in batch], [batch_size_current, 1])
                 action_label_batch = np.reshape([np.array(pair[4]) for pair in batch], [batch_size_current, self.dim_a])
-                #image_batch = np.reshape([np.array(pair[4]) for pair in batch], [batch_size_current, self.sequence_length, self.image_width, self.image_width, 3])
-
-                #import matplotlib.pyplot as plt
-                #for i in range(len(image_batch[0])):
-                 #   plt.figure(i)
-                  #  plt.imshow(image_batch[0][i])
 
                 # Train policy
                 loss = self._update_policy(features_batch,
@@ -207,28 +176,6 @@ class HG_DAGGER:
                                            angle_direction_batch,
                                            action_label_batch)
                 loss_history.append(loss)
-        # TODO: test this with hidden state
-        """
-        if self.buffer.initialized() and feedback_received:
-            # Sample demonstrations from buffer and reshape
-            batch = self.buffer.sample(batch_size=batch_size)
-            features_batch = np.reshape([np.array(pair[0]) for pair in batch], [batch_size, self.sequence_length, self.features_dim])
-            velocity_batch = np.reshape([np.array(pair[1]) for pair in batch], [batch_size, self.sequence_length, 1])
-            drive_batch = np.reshape([np.array(pair[2]) for pair in batch], [batch_size, self.sequence_length, 1])
-            action_label_batch = np.reshape([np.array(pair[3]) for pair in batch], [batch_size, self.dim_a])
-
-            # Replace first element with current feedback
-            features_batch[0] = self.last_features
-            velocity_batch[0] = self.last_velocity_observation
-            drive_batch[0] = self.last_drive
-            action_label_batch[0] = self.last_action
-
-            # Train policy
-            self._update_policy(features_batch,
-                                velocity_batch,
-                                drive_batch,
-                                action_label_batch)
-        """
 
     def restart(self):
         # Restart buffers
